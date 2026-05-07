@@ -5,13 +5,15 @@ from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+
+from config import PROJECT_CREATE_VIEW, PROJECT_DETAIL_VIEW, PROJECT_FAVORITE_VIEW, PROJECT_LIST_VIEW
 from .models import Project
 from .forms import ProjectForm
 
 
 class ProjectListView(ListView):
     model = Project
-    template_name = 'projects/project_list.html'
+    template_name = PROJECT_LIST_VIEW
     context_object_name = 'projects'
     paginate_by = 12
 
@@ -21,7 +23,7 @@ class ProjectListView(ListView):
 
 class FavoriteProjectsView(LoginRequiredMixin, ListView):
     model = Project
-    template_name = 'projects/favorite_projects.html'
+    template_name = PROJECT_FAVORITE_VIEW
     context_object_name = 'projects'
 
     def get_queryset(self):
@@ -31,8 +33,8 @@ class FavoriteProjectsView(LoginRequiredMixin, ListView):
 class CreateProjectView(LoginRequiredMixin, CreateView):
     model = Project
     form_class = ProjectForm
-    template_name = 'projects/create-project.html'
-
+    template_name = PROJECT_CREATE_VIEW
+    
     def form_valid(self, form):
         project = form.save(commit=False)
         project.owner = self.request.user
@@ -48,14 +50,14 @@ class CreateProjectView(LoginRequiredMixin, CreateView):
 
 class ProjectDetailView(DetailView):
     model = Project
-    template_name = 'projects/project-details.html'
+    template_name = PROJECT_DETAIL_VIEW
     context_object_name = 'project'
 
 
 class EditProjectView(LoginRequiredMixin, UpdateView):
     model = Project
     form_class = ProjectForm
-    template_name = 'projects/create-project.html'
+    template_name = PROJECT_CREATE_VIEW
 
     def get_queryset(self):
         return self.request.user.owned_projects.all()

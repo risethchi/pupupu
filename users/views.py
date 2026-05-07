@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
 from django.core.paginator import Paginator
+
+from config import LOGIN_VIEW, PARTICIPANTS_VIEW, REGISTER_VIEW, USER_CHANGE_PASSWORD_VIEW, USER_DETAIL_VIEW, USER_EDIT_VIEW
 from .models import User
 from .forms import RegisterForm, LoginForm, UserEditForm, ChangePasswordForm
 
@@ -12,7 +14,7 @@ from .forms import RegisterForm, LoginForm, UserEditForm, ChangePasswordForm
 class RegisterView(CreateView):
     model = User
     form_class = RegisterForm
-    template_name = 'users/register.html'
+    template_name = REGISTER_VIEW
 
     def form_valid(self, form):
         user = form.save()
@@ -22,7 +24,7 @@ class RegisterView(CreateView):
 
 class LoginView(FormView):
     form_class = LoginForm
-    template_name = 'users/login.html'
+    template_name = LOGIN_VIEW
 
     def form_valid(self, form):
         email = form.cleaned_data['email']
@@ -44,7 +46,7 @@ class LogoutView(LoginRequiredMixin, FormView):
 
 class UserListView(ListView):
     model = User
-    template_name = 'users/participants.html'
+    template_name = PARTICIPANTS_VIEW
     context_object_name = 'participants'
     paginate_by = 12
 
@@ -82,14 +84,14 @@ class UserListView(ListView):
 
 class UserDetailView(DetailView):
     model = User
-    template_name = 'users/user-details.html'
+    template_name = USER_DETAIL_VIEW
     context_object_name = 'user'
 
 
 class UserEditView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = UserEditForm
-    template_name = 'users/edit_profile.html'
+    template_name = USER_EDIT_VIEW
 
     def get_object(self):
         return self.request.user
@@ -100,7 +102,7 @@ class UserEditView(LoginRequiredMixin, UpdateView):
 
 class ChangePasswordView(LoginRequiredMixin, FormView):
     form_class = ChangePasswordForm
-    template_name = 'users/change_password.html'
+    template_name = USER_CHANGE_PASSWORD_VIEW
 
     def form_valid(self, form):
         user = self.request.user
