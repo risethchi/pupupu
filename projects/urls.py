@@ -1,24 +1,15 @@
 from django.urls import path
-
 from . import views
 
-app_name = "projects"
-
+app_name = 'projects'
 
 urlpatterns = [
-    path("list", views.project_list_view, name="list"),
-    path("list/", views.project_list_view),
-    path("favorites", views.favorite_projects_view, name="favorites"),
-    path("favorites/", views.favorite_projects_view),
-    path("create-project", views.project_create_view, name="create"),
-    path("create-project/", views.project_create_view),
-    path("<int:project_id>", views.project_detail_view, name="detail"),
-    path("<int:project_id>/", views.project_detail_view),
-    path("<int:project_id>/edit", views.project_edit_view, name="edit"),
-    path("<int:project_id>/edit/", views.project_edit_view),
-    path("<int:project_id>/complete/", views.project_complete_view, name="complete"),
-    path("<int:project_id>/toggle-participate", views.project_toggle_participate_view, name="toggle_participate"),
-    path("<int:project_id>/toggle-participate/", views.project_toggle_participate_view),
-    path("<int:project_id>/toggle-favorite/", views.project_toggle_favorite_view, name="toggle_favorite"),
+    path('list/', views.ProjectListView.as_view(), name='project_list'),
+    path('favorites/', views.FavoriteProjectsView.as_view(), name='favorite_projects'),
+    path('create-project/', views.CreateProjectView.as_view(), name='create_project'),
+    path('<int:pk>/', views.ProjectDetailView.as_view(), name='project_detail'),
+    path('<int:pk>/edit/', views.EditProjectView.as_view(), name='edit_project'),
+    path('<int:pk>/complete/', views.CompleteProjectView.as_view(), name='complete_project'),
+    path('<int:pk>/toggle-participate/', views.ToggleParticipateView.as_view(), name='toggle_participate'),
+    path('<int:pk>/toggle-favorite/', views.ToggleFavoriteView.as_view(), name='toggle_favorite'),
 ]
-

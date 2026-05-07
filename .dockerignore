@@ -1,0 +1,4 @@
+*.md
+templates_var*
+!templates_var1
+docs

@@ -1,101 +1,110 @@
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.urls import reverse
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.http import JsonResponse, Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
-
-from .forms import ProjectForm
 from .models import Project
+from .forms import ProjectForm
 
 
-@require_GET
-def project_list_view(request):
-    qs = Project.objects.select_related("owner").prefetch_related("participants")
-    paginator = Paginator(qs, 12)
-    page = paginator.get_page(request.GET.get("page"))
-    return render(request, "projects/project_list.html", {"projects": page})
+class ProjectListView(ListView):
+    model = Project
+    template_name = 'projects/project_list.html'
+    context_object_name = 'projects'
+    paginate_by = 12
+
+    def get_queryset(self):
+        return Project.objects.all()
 
 
-@login_required
-@require_GET
-def favorite_projects_view(request):
-    qs = request.user.favorites.select_related("owner").prefetch_related("participants").all()
-    paginator = Paginator(qs, 12)
-    page = paginator.get_page(request.GET.get("page"))
-    return render(request, "projects/favorite_projects.html", {"projects": page})
+class FavoriteProjectsView(LoginRequiredMixin, ListView):
+    model = Project
+    template_name = 'projects/favorite_projects.html'
+    context_object_name = 'projects'
+
+    def get_queryset(self):
+        return self.request.user.favorites.all()
 
 
-@require_GET
-def project_detail_view(request, project_id: int):
-    project = get_object_or_404(
-        Project.objects.select_related("owner").prefetch_related("participants"),
-        pk=project_id,
-    )
-    return render(request, "projects/project-details.html", {"project": project})
+class CreateProjectView(LoginRequiredMixin, CreateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'projects/create-project.html'
+
+    def form_valid(self, form):
+        project = form.save(commit=False)
+        project.owner = self.request.user
+        project.save()
+        project.participants.add(self.request.user)  # Owner is participant
+        return redirect(project.get_absolute_url())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = False
+        return context
 
 
-@login_required
-def project_create_view(request):
-    if request.method == "POST":
-        form = ProjectForm(request.POST)
-        if form.is_valid():
-            project: Project = form.save(commit=False)
-            project.owner = request.user
-            project.save()
-            project.participants.add(request.user)
-            return redirect(f"/projects/{project.id}")
-    else:
-        form = ProjectForm()
-    return render(request, "projects/create-project.html", {"form": form, "is_edit": False})
+class ProjectDetailView(DetailView):
+    model = Project
+    template_name = 'projects/project-details.html'
+    context_object_name = 'project'
 
 
-@login_required
-def project_edit_view(request, project_id: int):
-    project = get_object_or_404(Project, pk=project_id)
-    if project.owner_id != request.user.id:
-        raise Http404
-    if request.method == "POST":
-        form = ProjectForm(request.POST, instance=project)
-        if form.is_valid():
-            form.save()
-            return redirect(f"/projects/{project.id}")
-    else:
-        form = ProjectForm(instance=project)
-    return render(request, "projects/create-project.html", {"form": form, "is_edit": True})
+class EditProjectView(LoginRequiredMixin, UpdateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'projects/create-project.html'
+
+    def get_queryset(self):
+        return self.request.user.owned_projects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
 
 
-@login_required
-@require_POST
-def project_complete_view(request, project_id: int):
-    project = get_object_or_404(Project, pk=project_id)
-    if project.owner_id != request.user.id or project.status != Project.STATUS_OPEN:
-        return JsonResponse({"status": "error"}, status=403)
-    project.status = Project.STATUS_CLOSED
-    project.save(update_fields=["status"])
-    return JsonResponse({"status": "ok", "project_status": project.status})
+class CompleteProjectView(LoginRequiredMixin, UpdateView):
+    model = Project
+    fields = []
+
+    def get_queryset(self):
+        return self.request.user.owned_projects.filter(status='open')
+
+    def form_valid(self, form):
+        project = form.save(commit=False)
+        project.status = 'closed'
+        project.save()
+        return JsonResponse({'status': 'ok', 'project_status': 'closed'})
 
 
-@login_required
-@require_POST
-def project_toggle_participate_view(request, project_id: int):
-    project = get_object_or_404(Project, pk=project_id)
-    if project.participants.filter(pk=request.user.pk).exists():
-        project.participants.remove(request.user)
-        participating = False
-    else:
-        project.participants.add(request.user)
-        participating = True
-    return JsonResponse({"status": "ok", "participant": participating})
+class ToggleParticipateView(LoginRequiredMixin, UpdateView):
+    model = Project
+    fields = []
+
+    def form_valid(self, form):
+        project = form.instance
+        user = self.request.user
+        if user in project.participants.all():
+            project.participants.remove(user)
+        else:
+            project.participants.add(user)
+        return JsonResponse({'status': 'ok'})
 
 
-@login_required
-@require_POST
-def project_toggle_favorite_view(request, project_id: int):
-    project = get_object_or_404(Project, pk=project_id)
-    if request.user.favorites.filter(pk=project.pk).exists():
-        request.user.favorites.remove(project)
-        favorited = False
-    else:
-        request.user.favorites.add(project)
-        favorited = True
-    return JsonResponse({"status": "ok", "favorited": favorited})
+class ToggleFavoriteView(LoginRequiredMixin, UpdateView):
+    model = Project
+    fields = []
+
+    def form_valid(self, form):
+        project = form.instance
+        user = self.request.user
+        if user in project.interested_users.all():
+            project.interested_users.remove(user)
+            favorited = False
+        else:
+            project.interested_users.add(user)
+            favorited = True
+        return JsonResponse({'status': 'ok', 'favorited': favorited})
