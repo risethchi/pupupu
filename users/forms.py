@@ -60,7 +60,7 @@ class LoginForm(forms.Form):
         return cleaned
 
 
-class EditProfileForm(forms.ModelForm):
+class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ["name", "surname", "avatar", "about", "phone", "github_url"]

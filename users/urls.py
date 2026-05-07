@@ -1,20 +1,14 @@
 from django.urls import path
-
 from . import views
 
-app_name = "users"
-
+app_name = 'users'
 
 urlpatterns = [
-    path("register/", views.register_view, name="register"),
-    path("login/", views.login_view, name="login"),
-    path("logout/", views.logout_view, name="logout"),
-    path("list", views.participants_list_view, name="list"),
-    path("edit-profile", views.edit_profile_view, name="edit_profile"),
-    path("edit-profile/", views.edit_profile_view),
-    path("change-password", views.change_password_view, name="change_password"),
-    path("change-password/", views.change_password_view),
-    path("<int:user_id>", views.user_detail_view, name="detail"),
-    path("<int:user_id>/", views.user_detail_view),
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('list/', views.UserListView.as_view(), name='user_list'),
+    path('<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
+    path('<int:pk>/edit/', views.UserEditView.as_view(), name='user_edit'),
+    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'),
 ]
-

@@ -1,98 +1,114 @@
-from django.contrib.auth import (
-    login as auth_login,
-    logout as auth_logout,
-    update_session_auth_hash,
-)
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.urls import reverse
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
-
-from .forms import ChangePasswordForm, EditProfileForm, LoginForm, RegisterForm
 from .models import User
+from .forms import RegisterForm, LoginForm, UserEditForm, ChangePasswordForm
 
 
-def register_view(request):
-    if request.method == "POST":
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect("/users/login/")
-    else:
-        form = RegisterForm()
-    return render(request, "users/register.html", {"form": form})
+class RegisterView(CreateView):
+    model = User
+    form_class = RegisterForm
+    template_name = 'users/register.html'
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('projects:project_list')
 
 
-def login_view(request):
-    if request.method == "POST":
-        form = LoginForm(request.POST, request=request)
-        if form.is_valid():
-            auth_login(request, form.user)
-            return redirect("/projects/list")
-    else:
-        form = LoginForm(request=request)
-    return render(request, "users/login.html", {"form": form})
+class LoginView(FormView):
+    form_class = LoginForm
+    template_name = 'users/login.html'
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        password = form.cleaned_data['password']
+        user = authenticate(self.request, email=email, password=password)
+        if user:
+            login(self.request, user)
+            return redirect('projects:project_list')
+        else:
+            form.add_error(None, 'Неверный имейл или пароль')
+            return self.form_invalid(form)
 
 
-def logout_view(request):
-    auth_logout(request)
-    return redirect("/projects/list")
+class LogoutView(LoginRequiredMixin, FormView):
+    def get(self, request):
+        logout(request)
+        return redirect('projects:project_list')
 
 
-@require_GET
-def user_detail_view(request, user_id: int):
-    user = get_object_or_404(User.objects.prefetch_related("owned_projects"), pk=user_id)
-    return render(request, "users/user-details.html", {"user": user})
+class UserListView(ListView):
+    model = User
+    template_name = 'users/participants.html'
+    context_object_name = 'participants'
+    paginate_by = 12
+
+    def get_queryset(self):
+        queryset = User.objects.filter(is_active=True).order_by('-id')
+        filter_param = self.request.GET.get('filter')
+        if filter_param and self.request.user.is_authenticated:
+            if filter_param == 'owners-of-favorite-projects':
+                # Authors of favorite projects
+                favorite_projects = self.request.user.favorites.all()
+                author_ids = favorite_projects.values_list('owner', flat=True).distinct()
+                queryset = queryset.filter(id__in=author_ids)
+            elif filter_param == 'owners-of-participating-projects':
+                # Authors of projects where user participates
+                participated_projects = self.request.user.participated_projects.all()
+                author_ids = participated_projects.values_list('owner', flat=True).distinct()
+                queryset = queryset.filter(id__in=author_ids)
+            elif filter_param == 'interested-in-my-projects':
+                # Users who have user's projects in favorites
+                user_projects = self.request.user.owned_projects.all()
+                liker_ids = user_projects.values_list('interested_users', flat=True).distinct()
+                queryset = queryset.filter(id__in=liker_ids)
+            elif filter_param == 'participants-of-my-projects':
+                # Participants in user's projects
+                user_projects = self.request.user.owned_projects.all()
+                participant_ids = user_projects.values_list('participants', flat=True).distinct()
+                queryset = queryset.filter(id__in=participant_ids)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_filter'] = self.request.GET.get('filter')
+        return context
 
 
-@login_required
-def edit_profile_view(request):
-    if request.method == "POST":
-        form = EditProfileForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return redirect(f"/users/{request.user.id}")
-    else:
-        form = EditProfileForm(instance=request.user)
-    return render(request, "users/edit_profile.html", {"form": form})
+class UserDetailView(DetailView):
+    model = User
+    template_name = 'users/user-details.html'
+    context_object_name = 'user'
 
 
-@login_required
-def change_password_view(request):
-    if request.method == "POST":
-        form = ChangePasswordForm(user=request.user, data=request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            return redirect(f"/users/{request.user.id}")
-    else:
-        form = ChangePasswordForm(user=request.user)
-    return render(request, "users/change_password.html", {"form": form})
+class UserEditView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserEditForm
+    template_name = 'users/edit_profile.html'
+
+    def get_object(self):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse('users:user_detail', kwargs={'pk': self.request.user.pk})
 
 
-@require_GET
-def participants_list_view(request):
-    qs = User.objects.all().order_by("-id")
-    active_filter = ""
+class ChangePasswordView(LoginRequiredMixin, FormView):
+    form_class = ChangePasswordForm
+    template_name = 'users/change_password.html'
 
-    if request.user.is_authenticated:
-        requested = (request.GET.get("filter") or "").strip()
-        if requested:
-            active_filter = requested
-            if requested == "owners-of-favorite-projects":
-                qs = qs.filter(owned_projects__in=request.user.favorites.all())
-            elif requested == "owners-of-participating-projects":
-                qs = qs.filter(owned_projects__in=request.user.participated_projects.all())
-            elif requested == "interested-in-my-projects":
-                qs = qs.filter(favorites__in=request.user.owned_projects.all())
-            elif requested == "participants-of-my-projects":
-                qs = qs.filter(participated_projects__in=request.user.owned_projects.all())
-            qs = qs.distinct()
-
-    paginator = Paginator(qs, 12)
-    page = paginator.get_page(request.GET.get("page"))
-    return render(
-        request,
-        "users/participants.html",
-        {"participants": page, "active_filter": active_filter},
-    )
+    def form_valid(self, form):
+        user = self.request.user
+        if user.check_password(form.cleaned_data['old_password']):
+            user.set_password(form.cleaned_data['new_password1'])
+            user.save()
+            login(self.request, user)
+            return redirect('users:user_detail', pk=user.pk)
+        else:
+            form.add_error('old_password', 'Неверный пароль')
+            return self.form_invalid(form)
