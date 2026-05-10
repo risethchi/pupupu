@@ -1,20 +1,24 @@
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.urls import reverse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.http import JsonResponse
-from django.core.paginator import Paginator
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from config import PROJECT_CREATE_VIEW, PROJECT_DETAIL_VIEW, PROJECT_FAVORITE_VIEW, PROJECT_LIST_VIEW
-from .models import Project
+from config import (
+    PROJECT_CREATE_VIEW,
+    PROJECT_DETAIL_VIEW,
+    PROJECT_FAVORITE_VIEW,
+    PROJECT_LIST_VIEW,
+)
+
 from .forms import ProjectForm
+from .models import Project
 
 
 class ProjectListView(ListView):
     model = Project
     template_name = PROJECT_LIST_VIEW
-    context_object_name = 'projects'
+    context_object_name = "projects"
     paginate_by = 12
 
     def get_queryset(self):
@@ -24,7 +28,7 @@ class ProjectListView(ListView):
 class FavoriteProjectsView(LoginRequiredMixin, ListView):
     model = Project
     template_name = PROJECT_FAVORITE_VIEW
-    context_object_name = 'projects'
+    context_object_name = "projects"
 
     def get_queryset(self):
         return self.request.user.favorites.all()
@@ -34,24 +38,24 @@ class CreateProjectView(LoginRequiredMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = PROJECT_CREATE_VIEW
-    
+
     def form_valid(self, form):
         project = form.save(commit=False)
         project.owner = self.request.user
         project.save()
         project.participants.add(self.request.user)  # Owner is participant
-        return redirect(reverse('projects:project_detail', kwargs={'pk': project.pk}))
+        return redirect(reverse("projects:project_detail", kwargs={"pk": project.pk}))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_edit'] = False
+        context["is_edit"] = False
         return context
 
 
 class ProjectDetailView(DetailView):
     model = Project
     template_name = PROJECT_DETAIL_VIEW
-    context_object_name = 'project'
+    context_object_name = "project"
 
 
 class EditProjectView(LoginRequiredMixin, UpdateView):
@@ -64,7 +68,7 @@ class EditProjectView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_edit'] = True
+        context["is_edit"] = True
         return context
 
 
@@ -73,13 +77,13 @@ class CompleteProjectView(LoginRequiredMixin, UpdateView):
     fields = []
 
     def get_queryset(self):
-        return self.request.user.owned_projects.filter(status='open')
+        return self.request.user.owned_projects.filter(status="open")
 
     def form_valid(self, form):
         project = form.save(commit=False)
-        project.status = 'closed'
+        project.status = "closed"
         project.save()
-        return JsonResponse({'status': 'ok', 'project_status': 'closed'})
+        return JsonResponse({"status": "ok", "project_status": "closed"})
 
 
 class ToggleParticipateView(LoginRequiredMixin, UpdateView):
@@ -93,7 +97,7 @@ class ToggleParticipateView(LoginRequiredMixin, UpdateView):
             project.participants.remove(user)
         else:
             project.participants.add(user)
-        return JsonResponse({'status': 'ok'})
+        return JsonResponse({"status": "ok"})
 
 
 class ToggleFavoriteView(LoginRequiredMixin, UpdateView):
@@ -109,4 +113,4 @@ class ToggleFavoriteView(LoginRequiredMixin, UpdateView):
         else:
             project.interested_users.add(user)
             favorited = True
-        return JsonResponse({'status': 'ok', 'favorited': favorited})
+        return JsonResponse({"status": "ok", "favorited": favorited})

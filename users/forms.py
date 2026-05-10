@@ -84,7 +84,9 @@ class UserEditForm(forms.ModelForm):
         phone = self.cleaned_data.get("phone", "")
         phone = normalize_phone(phone)
         if not re.fullmatch(r"\+7\d{10}", phone):
-            raise ValidationError("Телефон должен быть в формате 8XXXXXXXXXX или +7XXXXXXXXXX.")
+            raise ValidationError(
+                "Телефон должен быть в формате 8XXXXXXXXXX или +7XXXXXXXXXX."
+            )
         user_id = self.instance.pk
         if User.objects.filter(~Q(pk=user_id), phone=phone).exists():
             raise ValidationError("Этот номер телефона уже используется.")
@@ -96,4 +98,3 @@ class UserEditForm(forms.ModelForm):
 
 class ChangePasswordForm(PasswordChangeForm):
     pass
-
