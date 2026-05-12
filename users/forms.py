@@ -1,5 +1,4 @@
 import re
-from urllib.parse import urlparse
 
 from django import forms
 from django.contrib.auth import authenticate
@@ -8,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from .models import User, normalize_phone
-from .utils import validate_github_url, validate_login_credentials
+from .utils import validate_github_url
 
 
 class RegisterForm(forms.ModelForm):

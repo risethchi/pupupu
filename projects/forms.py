@@ -1,7 +1,5 @@
-from urllib.parse import urlparse
 
 from django import forms
-from django.core.exceptions import ValidationError
 
 from .models import Project
 from .utils import validate_github_url
