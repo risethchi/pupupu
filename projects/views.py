@@ -9,6 +9,7 @@ from config import (
     PROJECT_DETAIL_VIEW,
     PROJECT_FAVORITE_VIEW,
     PROJECT_LIST_VIEW,
+    USER_LIST_PAGINATE_BY,
 )
 
 from .forms import ProjectForm
@@ -19,7 +20,7 @@ class ProjectListView(ListView):
     model = Project
     template_name = PROJECT_LIST_VIEW
     context_object_name = "projects"
-    paginate_by = 12
+    paginate_by = USER_LIST_PAGINATE_BY
 
     def get_queryset(self):
         return Project.objects.all()

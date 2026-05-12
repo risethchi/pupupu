@@ -7,5 +7,7 @@ USER_CHANGE_PASSWORD_VIEW = "users/change_password.html"
 
 PROJECT_LIST_VIEW = "projects/project_list.html"
 PROJECT_FAVORITE_VIEW = "projects/favorite_projects.html"
-PROJECT_CREATE_VIEW = "projects/create_project.html"
-PROJECT_DETAIL_VIEW = "projects/project_detail.html"
+PROJECT_CREATE_VIEW = "projects/create-project.html"
+PROJECT_DETAIL_VIEW = "projects/project-details.html"
+
+USER_LIST_PAGINATE_BY = 12

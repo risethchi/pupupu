@@ -11,6 +11,16 @@ from django.core.validators import URLValidator
 from django.db import models
 from PIL import Image, ImageDraw, ImageFont
 
+from .utils import AVATAR_SIZE
+
+
+def avatar_upload_path(instance, filename: str) -> str:
+    extension = filename.split('.')[-1].lower() if '.' in filename else 'png'
+    if instance.pk:
+        return f"avatars/user_{instance.pk}_avatar.{extension}"
+    return f"avatars/user_avatar.{extension}"
+
+
 
 def normalize_phone(phone: str | None) -> str | None:
     phone = (phone or "").strip()
@@ -58,7 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=124)
     surname = models.CharField(max_length=124)
-    avatar = models.ImageField(upload_to="avatars/", blank=True)
+    avatar = models.ImageField(upload_to=avatar_upload_path, blank=True)
     phone = models.CharField(max_length=12, unique=True, blank=True, null=True)
     github_url = models.URLField(blank=True, validators=[URLValidator()])
     about = models.CharField(max_length=256, blank=True)
@@ -88,6 +98,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.email = (self.email or "").lower().strip()
         self.phone = normalize_phone(self.phone)
         creating = self._state.adding
+        old_avatar = None
+        if not creating:
+            existing = self.__class__.objects.filter(pk=self.pk).only("avatar").first()
+            if existing and existing.avatar and self.avatar and existing.avatar.name != self.avatar.name:
+                old_avatar = existing.avatar
+        if old_avatar:
+            old_avatar.delete(save=False)
         super().save(*args, **kwargs)
         if creating and not self.avatar:
             self._generate_avatar()
@@ -103,7 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             "#2196F3",
         ]
         bg = random.choice(bg_colors)
-        size = 256
+        size = AVATAR_SIZE
         img = Image.new("RGB", (size, size), bg)
         draw = ImageDraw.Draw(img)
         font = ImageFont.load_default()

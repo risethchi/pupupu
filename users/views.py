@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
@@ -11,10 +13,18 @@ from config import (
     USER_CHANGE_PASSWORD_VIEW,
     USER_DETAIL_VIEW,
     USER_EDIT_VIEW,
+    USER_LIST_PAGINATE_BY,
 )
 
 from .forms import ChangePasswordForm, LoginForm, RegisterForm, UserEditForm
 from .models import User
+
+
+class UserFilter(Enum):
+    OWNERS_OF_FAVORITE_PROJECTS = "owners-of-favorite-projects"
+    OWNERS_OF_PARTICIPATING_PROJECTS = "owners-of-participating-projects"
+    INTERESTED_IN_MY_PROJECTS = "interested-in-my-projects"
+    PARTICIPANTS_OF_MY_PROJECTS = "participants-of-my-projects"
 
 
 class RegisterView(CreateView):
@@ -54,34 +64,34 @@ class UserListView(ListView):
     model = User
     template_name = PARTICIPANTS_VIEW
     context_object_name = "participants"
-    paginate_by = 12
+    paginate_by = USER_LIST_PAGINATE_BY
 
     def get_queryset(self):
         queryset = User.objects.filter(is_active=True).order_by("-id")
         filter_param = self.request.GET.get("filter")
         if filter_param and self.request.user.is_authenticated:
-            if filter_param == "owners-of-favorite-projects":
+            if filter_param == UserFilter.OWNERS_OF_FAVORITE_PROJECTS.value:
                 # Authors of favorite projects
                 favorite_projects = self.request.user.favorites.all()
                 author_ids = favorite_projects.values_list(
                     "owner", flat=True
                 ).distinct()
                 queryset = queryset.filter(id__in=author_ids)
-            elif filter_param == "owners-of-participating-projects":
+            elif filter_param == UserFilter.OWNERS_OF_PARTICIPATING_PROJECTS.value:
                 # Authors of projects where user participates
                 participated_projects = self.request.user.participated_projects.all()
                 author_ids = participated_projects.values_list(
                     "owner", flat=True
                 ).distinct()
                 queryset = queryset.filter(id__in=author_ids)
-            elif filter_param == "interested-in-my-projects":
+            elif filter_param == UserFilter.INTERESTED_IN_MY_PROJECTS.value:
                 # Users who have user's projects in favorites
                 user_projects = self.request.user.owned_projects.all()
                 liker_ids = user_projects.values_list(
                     "interested_users", flat=True
                 ).distinct()
                 queryset = queryset.filter(id__in=liker_ids)
-            elif filter_param == "participants-of-my-projects":
+            elif filter_param == UserFilter.PARTICIPANTS_OF_MY_PROJECTS.value:
                 # Participants in user's projects
                 user_projects = self.request.user.owned_projects.all()
                 participant_ids = user_projects.values_list(
@@ -117,6 +127,11 @@ class UserEditView(LoginRequiredMixin, UpdateView):
 class ChangePasswordView(LoginRequiredMixin, FormView):
     form_class = ChangePasswordForm
     template_name = USER_CHANGE_PASSWORD_VIEW
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         user = self.request.user

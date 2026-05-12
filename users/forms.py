@@ -8,16 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from .models import User, normalize_phone
-
-
-def validate_github_url(url: str) -> str:
-    if not url:
-        return url
-    parsed = urlparse(url)
-    host = (parsed.netloc or "").lower()
-    if host.endswith("github.com"):
-        return url
-    raise ValidationError("Ссылка должна вести на GitHub.")
+from .utils import validate_github_url, validate_login_credentials
 
 
 class RegisterForm(forms.ModelForm):
