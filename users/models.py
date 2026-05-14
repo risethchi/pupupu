@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.validators import URLValidator
@@ -13,25 +11,7 @@ from .constants import (
     PHONE_MAX_LENGTH,
     ABOUT_MAX_LENGTH,
 )
-
-
-def avatar_upload_path(instance, filename: str) -> str:
-    extension = filename.split(".")[-1].lower() if "." in filename else "png"
-    if instance.pk:
-        return f"avatars/user_{instance.pk}_avatar.{extension}"
-    return f"avatars/user_avatar.{extension}"
-
-
-def normalize_phone(phone: str | None) -> str | None:
-    phone = (phone or "").strip()
-    if not phone:
-        return None
-    phone = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    if re.fullmatch(r"8\d{10}", phone):
-        return "+7" + phone[1:]
-    if re.fullmatch(r"\+7\d{10}", phone):
-        return phone
-    return phone
+from .utils import avatar_upload_path, normalize_phone
 
 
 class UserManager(BaseUserManager):

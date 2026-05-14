@@ -18,7 +18,7 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     github_url = models.URLField(
-        blank=True, validators=[URLValidator()], verbose_name="Ссылка на GitHub"
+        validators=[URLValidator()], verbose_name="Ссылка на GitHub"
     )
     status = models.CharField(
         max_length=6,

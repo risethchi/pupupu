@@ -61,7 +61,6 @@ class LogoutView(LoginRequiredMixin, FormView):
 
 
 class UserListView(ListView):
-    model = User
     template_name = PARTICIPANTS_VIEW
     context_object_name = "participants"
     paginate_by = USER_LIST_PAGINATE_BY
