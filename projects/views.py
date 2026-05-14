@@ -17,22 +17,24 @@ from .models import Project
 
 
 class ProjectListView(ListView):
-    model = Project
     template_name = PROJECT_LIST_VIEW
     context_object_name = "projects"
     paginate_by = USER_LIST_PAGINATE_BY
 
     def get_queryset(self):
-        return Project.objects.all()
+        return Project.objects.select_related("owner").prefetch_related("participants")
 
 
 class FavoriteProjectsView(LoginRequiredMixin, ListView):
-    model = Project
     template_name = PROJECT_FAVORITE_VIEW
     context_object_name = "projects"
 
     def get_queryset(self):
-        return self.request.user.favorites.all()
+        return (
+            self.request.user.favorites.select_related("owner").prefetch_related(
+                "participants"
+            )
+        )
 
 
 class CreateProjectView(LoginRequiredMixin, CreateView):
@@ -58,6 +60,9 @@ class ProjectDetailView(DetailView):
     template_name = PROJECT_DETAIL_VIEW
     context_object_name = "project"
 
+    def get_queryset(self):
+        return Project.objects.select_related("owner").prefetch_related("participants")
+
 
 class EditProjectView(LoginRequiredMixin, UpdateView):
     model = Project
@@ -65,7 +70,9 @@ class EditProjectView(LoginRequiredMixin, UpdateView):
     template_name = PROJECT_CREATE_VIEW
 
     def get_queryset(self):
-        return self.request.user.owned_projects.all()
+        return self.request.user.owned_projects.select_related("owner").prefetch_related(
+            "participants"
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -78,13 +85,15 @@ class CompleteProjectView(LoginRequiredMixin, UpdateView):
     fields = []
 
     def get_queryset(self):
-        return self.request.user.owned_projects.filter(status="open")
+        return self.request.user.owned_projects.filter(status=Project.Status.OPEN)
 
     def form_valid(self, form):
         project = form.save(commit=False)
-        project.status = "closed"
+        project.status = Project.Status.CLOSED
         project.save()
-        return JsonResponse({"status": "ok", "project_status": "closed"})
+        return JsonResponse(
+            {"status": "ok", "project_status": Project.Status.CLOSED}
+        )
 
 
 class ToggleParticipateView(LoginRequiredMixin, UpdateView):
@@ -94,7 +103,7 @@ class ToggleParticipateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         project = form.instance
         user = self.request.user
-        if user in project.participants.all():
+        if project.participants.filter(pk=user.pk).exists():
             project.participants.remove(user)
         else:
             project.participants.add(user)
@@ -108,7 +117,7 @@ class ToggleFavoriteView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         project = form.instance
         user = self.request.user
-        if user in project.interested_users.all():
+        if project.interested_users.filter(pk=user.pk).exists():
             project.interested_users.remove(user)
             favorited = False
         else:

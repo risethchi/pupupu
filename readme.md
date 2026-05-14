@@ -1,165 +1,200 @@
-# TeamFinder (вариант 1): запуск и проверка
+# TeamFinder (вариант 1)
+
+**TeamFinder** — это платформа для поиска единомышленников для совместной работы над IT-проектами.  
+Пользователи могут создавать проекты, приглашать участников, добавлять проекты в избранное и фильтровать участников по различным критериям.
+
+### Используемые технологии
+
+- **Python 3.10**
+- **Django 5.2**
+- **PostgreSQL 16**
+- **Docker & Docker Compose**
+- **Pillow** (генерация аватаров)
+
+---
 
 ## Запуск в Docker (рекомендуется для ревью)
 
-### 1) Подготовьте `.env`
+### 1. Подготовьте `.env`
 
-Скопируйте пример и при необходимости отредактируйте:
+Скопируйте пример и отредактируйте при необходимости:
 
 ```bash
 cp .env_example .env
-```
-
 Минимально важное для варианта 1:
 
-- **`TASK_VERSION=1`**
-- **`POSTGRES_HOST=db`**, **`POSTGRES_PORT=5432`**
+    TASK_VERSION=1
 
-### 2) Поднимите проект
+    POSTGRES_HOST=db
 
-```bash
-docker compose up --build
-```
+    POSTGRES_PORT=5432
 
-Откройте в браузере `http://localhost:8000/projects/list`.
+Пример содержимого .env:
 
-### 3) Остановка
+  DJANGO_SECRET_KEY=your-secret-key-here
+  DJANGO_DEBUG=True
 
-```bash
-docker compose down
-```
+  POSTGRES_DB=team_finder
+  POSTGRES_USER=team_finder
+  POSTGRES_PASSWORD=team_finder
+  POSTGRES_HOST=db
+  POSTGRES_PORT=5432
 
-Данные Postgres сохраняются в Docker volume `postgres_data` и **не пропадут** после перезапуска контейнеров.
+  TASK_VERSION=1
 
----
+2. Запустите проект
 
-## Проверка работоспособности (вариант 1)
+  docker compose up --build
 
-### Базовые сценарии
+После сборки откройте в браузере: http://localhost:8000/projects/list 
 
-- **Главная**: `http://localhost:8000/projects/list`
-  - проекты сортируются по дате (новые сверху)
-  - для авторизованного пользователя видно сердечко и кнопка “Создать проект”
-- **Регистрация**: `http://localhost:8000/users/register/`
-- **Вход**: `http://localhost:8000/users/login/`
-- **Профиль пользователя**: `http://localhost:8000/users/<id>`
-- **Редактирование профиля**: `http://localhost:8000/users/edit-profile`
-  - телефон валидируется и приводится к формату `+7XXXXXXXXXX`
-  - GitHub ссылка валидируется (должна вести на GitHub)
-- **Список участников**: `http://localhost:8000/users/list`
-  - доступны фильтры (только авторизованному)
-- **Проект**: `http://localhost:8000/projects/<id>`
-  - “Участвовать/Отказаться” работает для авторизованного
-  - “Завершить проект” работает только для владельца
-- **Избранное**: `http://localhost:8000/projects/favorites` (только авторизованному)
-  - сердечко на карточке добавляет/удаляет проект из избранного
+3. Остановка
+  docker compose down
 
-### Админка (по желанию)
+Данные Postgres сохраняются в Docker volume postgres_data и не теряются после перезапуска контейнеров.    
+
+Проверка работоспособности (вариант 1)
+Базовые сценарии
+
+    Главная – /projects/list
+
+        проекты отсортированы по дате (новые сверху)
+
+        для авторизованного пользователя видна кнопка «Создать проект» и иконка «Добавить в избранное»
+
+    Регистрация – /users/register/
+
+    Вход – /users/login/
+
+    Профиль пользователя – /users/<id>
+
+        для владельца доступны кнопки «Редактировать профиль» и «Добавить проект»
+
+    Редактирование профиля – /users/edit-profile
+
+        валидация телефона (формат 8XXXXXXXXXX или +7XXXXXXXXXX)
+
+        валидация GitHub-ссылки (должна вести на github.com)
+
+    Список участников – /users/list
+
+        доступны фильтры для авторизованных пользователей
+
+    Страница проекта – /projects/<id>
+
+        кнопка «Участвовать/Отказаться» – для авторизованных
+
+        кнопка «Завершить проект» – только для владельца
+
+    Избранное – /projects/favorites (доступно только авторизованным)
+
+        добавление/удаление из избранного через сердечко на карточке проекта
+
+Админка
 
 Создать суперпользователя:
 
-```bash
-docker compose exec web python manage.py createsuperuser
-```
+  docker compose exec web python manage.py createsuperuser
 
-Админка: `http://localhost:8000/admin/`
+Админ-панель: http://localhost:8000/admin
 
----
+Создание тестовых данных
 
-## Локальный запуск без Docker (опционально)
+После запуска проекта создайте несколько пользователей и проектов для проверки функционала.
 
-## 1. Виртуальное окружение
+Способ 1. Через веб-интерфейс
 
-Перед началом работы необходимо создать и активировать виртуальное окружение Python.  
+    Зарегистрируйте двух-трёх пользователей через /users/register/.
 
+    Войдите под каждым и создайте по одному-двум проектам через кнопку «Создать проект».
 
-1. **Создайте виртуальное окружение (в папке проекта):**
-   ```bash
-   python3 -m venv venv
-   ```
+    Добавьте проекты в избранное, участвуйте в чужих проектах.
 
-   После этого появится папка `venv`, где будут храниться зависимости проекта.
+Способ 2. Через Django shell
 
-2. **Активируйте окружение:**
+  docker compose exec web python manage.py shell
 
-    - **Windows (PowerShell):**
-      ```bash
-      venv\Scripts\Activate.ps1
-      ```
-    - **Windows (cmd):**
-      ```bash
-      venv\Scripts\activate
-      ```
-    - **Linux/Mac:**
-      ```bash
-      source venv/bin/activate
-      ```
+Затем выполните:
 
-3. **Установите зависимости из `requirements.txt`:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+  from users.models import User
+  from projects.models import Project
 
-   После установки в окружении будут доступны все нужные библиотеки Django-проекта.
+  # Создаём пользователей
+  user1 = User.objects.create_user(
+      email='alice@example.com',
+      first_name='Алиса',
+      last_name='Иванова',
+      password='alice123'
+  )
+  user2 = User.objects.create_user(
+      email='bob@example.com',
+      first_name='Боб',
+      last_name='Петров',
+      password='bob123'
+  )
 
-## 2. Создание `.env`
+  # Создаём проекты от имени user1
+  project1 = Project.objects.create(
+      name='Чат-бот для Telegram',
+      description='Бот с интеграцией OpenAI',
+      owner=user1,
+      status=Project.Status.OPEN
+  )
+  project2 = Project.objects.create(
+      name='Мобильное приложение для спорта',
+      description='Трекер тренировок',
+      owner=user1,
+      status=Project.Status.OPEN
+  )
 
-Файл `.env` содержит конфиденциальные настройки проекта — ключ Django, параметры БД и другие переменные.  
+  # Добавляем user2 в участники project1
+  project1.participants.add(user2)
 
-Особое внимание обратите на строчку `TASK_VERSION=`. 
-Добавьте число, которое соответствует вашему варианту задания. 
-Этот параметр определяет, какие шаблоны использовать для сайта (из папок `templates_var1`/`templates_var2`/`templates_var3`).
-Лишние две папки не из вашего варианта можно удалить.
+  # Добавляем project2 в избранное user2
+  user2.favorites.add(project2)
 
-В репозитории есть пример `.env_example`, который нужно скопировать и заполнить:
+Способ 3. Загрузка фикстур (если подготовлены)
 
-```bash
-cp .env_example .env
-```
+  docker compose exec web python manage.py loaddata users/fixtures/users.json
+  docker compose exec web python manage.py loaddata projects/fixtures/projects.json
 
-После этого откройте `.env` и укажите свои значения.  
+Локальный запуск без Docker (опционально)
+1. Виртуальное окружение
 
-| Переменная            | Назначение                                                                                                                                                 |
-|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **DJANGO_SECRET_KEY** | Секретный ключ Django, используемый для подписи cookie и токенов. Можно сгенерировать при помощи `get_random_secret_key` из `django.core.management.utils` |
-| **DJANGO_DEBUG**      | Режим отладки. Установите `True` во время разработки.                                                                                                      |
-| **POSTGRES_DB**       | Имя базы данных PostgreSQL, которую будет использовать Django.                                                                                             |
-| **POSTGRES_USER**     | Имя пользователя PostgreSQL.                                                                                                                               |
-| **POSTGRES_PASSWORD** | Пароль пользователя PostgreSQL.                                                                                                                            |
-| **POSTGRES_HOST**     | Адрес сервера БД. В случае локальной разработки localhost.                                                                                                 |
-| **POSTGRES_PORT**     | Порт подключения к БД (по умолчанию `5432`).                                                                                                               |
-| **TASK_VERSION**      | Номер варианта вашего задания. Используется для определения набора HTML-шаблонов.                                                                          |
+  python3 -m venv venv
+  source venv/bin/activate        # Linux/Mac
+  # или venv\Scripts\activate     # Windows
 
----
+2. Установка зависимостей
 
-## 3. Запуск PostgreSQL
+  pip install -r requirements.txt
 
-Для работы приложения **TeamFinder** используется база данных **PostgreSQL**.
-По условию задания база данных должна запускаться в контейнере Docker.
+3. Настройка .env
 
-Если вы запускаете Postgres без Docker, убедитесь что параметры подключения совпадают с `.env`.
+Скопируйте .env_example в .env и отредактируйте:
 
-Если возникает ошибка "permission denied while trying to connect to the Docker daemon socket", то может потребоваться добавить `sudo` перед командой.
+  cp .env_example .env
 
----
+Убедитесь, что POSTGRES_HOST=localhost (если PostgreSQL запущен отдельно).
+4. Запуск PostgreSQL (локально или через Docker)
 
-После этого база данных будет доступна по адресу `localhost:5432`.  
-Нужно будет использовать эти же параметры в файле `.env`.
+Если используете Docker только для БД:
 
-> Если на компьютере уже развёрнут сервер БД на порте 5432, и вы не хотите создавать БД для этого проекта на этом сервере, целесообразнее будет изменить порт на нестандартный.
-> Нестандартный порт нужно будет поставить слева в паре портов в docker-compose (`"5433":"5432"`) и в .env.
+  docker run --name teamfinder-db -e POSTGRES_PASSWORD=teamfinder -e POSTGRES_USER=teamfinder -e POSTGRES_DB=teamfinder -p 5432:5432 -d postgres:16
 
-## 4. Запуск Django
+5. Миграции и запуск
 
-После заполнения `.env` и настройки базы данных можно запустить сервер разработки:
+  python manage.py migrate
+  python manage.py runserver
 
-```bash
-python manage.py migrate
-python manage.py runserver
-```
+Проект будет доступен по адресу http://localhost:8000
+Дополнительная информация
 
-Теперь проект доступен по адресу [http://localhost:8000](http://localhost:8000). 
-Если видите ракету с надписью "The install worked successfully! Congratulations!", то запуск прошёл успешно, Django работает!
-Осталось всего ничего: реализовать весь проект!
+    При регистрации автоматически генерируется аватар с первой буквой имени на случайном цветном фоне.
 
-Если в процессе разработки способ развертывания приложения поменяется, обновите `readme.md` с пометкой ревьюеру, как запускать и проверять приложение.
+    При смене аватара старый файл удаляется (через сигнал pre_save).
+
+    Телефоны нормализуются к формату +7XXXXXXXXXX и проверяются на уникальность независимо от исходного формата (8 или +7).
+
+    GitHub-ссылки валидируются: домен должен оканчиваться на github.com.
+

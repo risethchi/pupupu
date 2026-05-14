@@ -22,6 +22,3 @@ def validate_github_url(url: str) -> str:
 
 
 AVATAR_SIZE = 256
-
-
-

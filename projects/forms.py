@@ -1,4 +1,3 @@
-
 from django import forms
 
 from .models import Project
@@ -7,8 +6,8 @@ from .utils import validate_github_url
 
 class ProjectForm(forms.ModelForm):
     STATUS_RU_CHOICES = [
-        (Project.STATUS_OPEN, "Открыт"),
-        (Project.STATUS_CLOSED, "Закрыт"),
+        (Project.Status.OPEN, "Открыт"),
+        (Project.Status.CLOSED, "Закрыт"),
     ]
 
     class Meta:

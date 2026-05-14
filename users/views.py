@@ -46,12 +46,12 @@ class LoginView(FormView):
         email = form.cleaned_data["email"]
         password = form.cleaned_data["password"]
         user = authenticate(self.request, email=email, password=password)
-        if user:
-            login(self.request, user)
-            return redirect("projects:project_list")
-        else:
+        if not user:
             form.add_error(None, "Неверный имейл или пароль")
             return self.form_invalid(form)
+
+        login(self.request, user)
+        return redirect("projects:project_list")
 
 
 class LogoutView(LoginRequiredMixin, FormView):
@@ -67,37 +67,28 @@ class UserListView(ListView):
     paginate_by = USER_LIST_PAGINATE_BY
 
     def get_queryset(self):
-        queryset = User.objects.filter(is_active=True).order_by("-id")
+        # Сортировка задана в Meta модели User
+        queryset = User.objects.filter(is_active=True)
+
         filter_param = self.request.GET.get("filter")
         if filter_param and self.request.user.is_authenticated:
             if filter_param == UserFilter.OWNERS_OF_FAVORITE_PROJECTS.value:
-                # Authors of favorite projects
                 favorite_projects = self.request.user.favorites.all()
-                author_ids = favorite_projects.values_list(
-                    "owner", flat=True
-                ).distinct()
+                author_ids = favorite_projects.values_list("owner", flat=True).distinct()
                 queryset = queryset.filter(id__in=author_ids)
             elif filter_param == UserFilter.OWNERS_OF_PARTICIPATING_PROJECTS.value:
-                # Authors of projects where user participates
                 participated_projects = self.request.user.participated_projects.all()
-                author_ids = participated_projects.values_list(
-                    "owner", flat=True
-                ).distinct()
+                author_ids = participated_projects.values_list("owner", flat=True).distinct()
                 queryset = queryset.filter(id__in=author_ids)
             elif filter_param == UserFilter.INTERESTED_IN_MY_PROJECTS.value:
-                # Users who have user's projects in favorites
                 user_projects = self.request.user.owned_projects.all()
-                liker_ids = user_projects.values_list(
-                    "interested_users", flat=True
-                ).distinct()
+                liker_ids = user_projects.values_list("interested_users", flat=True).distinct()
                 queryset = queryset.filter(id__in=liker_ids)
             elif filter_param == UserFilter.PARTICIPANTS_OF_MY_PROJECTS.value:
-                # Participants in user's projects
                 user_projects = self.request.user.owned_projects.all()
-                participant_ids = user_projects.values_list(
-                    "participants", flat=True
-                ).distinct()
+                participant_ids = user_projects.values_list("participants", flat=True).distinct()
                 queryset = queryset.filter(id__in=participant_ids)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -135,11 +126,11 @@ class ChangePasswordView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         user = self.request.user
-        if user.check_password(form.cleaned_data["old_password"]):
-            user.set_password(form.cleaned_data["new_password1"])
-            user.save()
-            login(self.request, user)
-            return redirect("users:user_detail", pk=user.pk)
-        else:
+        if not user.check_password(form.cleaned_data["old_password"]):
             form.add_error("old_password", "Неверный пароль")
             return self.form_invalid(form)
+
+        user.set_password(form.cleaned_data["new_password1"])
+        user.save()
+        login(self.request, user)
+        return redirect("users:user_detail", pk=user.pk)

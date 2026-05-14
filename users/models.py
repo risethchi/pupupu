@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-import random
 import re
-from io import BytesIO
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
-from django.core.files.base import ContentFile
 from django.core.validators import URLValidator
 from django.db import models
-from PIL import Image, ImageDraw, ImageFont
 
-from .utils import AVATAR_SIZE
+from .constants import (
+    FIRST_NAME_MAX_LENGTH,
+    LAST_NAME_MAX_LENGTH,
+    PHONE_MAX_LENGTH,
+    ABOUT_MAX_LENGTH,
+)
 
 
 def avatar_upload_path(instance, filename: str) -> str:
-    extension = filename.split('.')[-1].lower() if '.' in filename else 'png'
+    extension = filename.split(".")[-1].lower() if "." in filename else "png"
     if instance.pk:
         return f"avatars/user_{instance.pk}_avatar.{extension}"
     return f"avatars/user_avatar.{extension}"
-
 
 
 def normalize_phone(phone: str | None) -> str | None:
@@ -65,26 +65,48 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
-    name = models.CharField(max_length=124)
-    surname = models.CharField(max_length=124)
-    avatar = models.ImageField(upload_to=avatar_upload_path, blank=True)
-    phone = models.CharField(max_length=12, unique=True, blank=True, null=True)
-    github_url = models.URLField(blank=True, validators=[URLValidator()])
-    about = models.CharField(max_length=256, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    email = models.EmailField(unique=True, verbose_name="Email")
+    first_name = models.CharField(
+        max_length=FIRST_NAME_MAX_LENGTH, verbose_name="Имя"
+    )
+    last_name = models.CharField(
+        max_length=LAST_NAME_MAX_LENGTH, verbose_name="Фамилия"
+    )
+    avatar = models.ImageField(
+        upload_to=avatar_upload_path, blank=True, verbose_name="Аватар"
+    )
+    phone = models.CharField(
+        max_length=PHONE_MAX_LENGTH,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Телефон",
+    )
+    github_url = models.URLField(
+        blank=True, validators=[URLValidator()], verbose_name="GitHub"
+    )
+    about = models.CharField(
+        max_length=ABOUT_MAX_LENGTH, blank=True, verbose_name="О себе"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    is_staff = models.BooleanField(default=False, verbose_name="Персонал")
 
     favorites = models.ManyToManyField(
         "projects.Project",
         related_name="interested_users",
         blank=True,
+        verbose_name="Избранные проекты",
     )
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["name", "surname"]
+    REQUIRED_FIELDS = ["first_name", "last_name"]
 
     objects = UserManager()
+
+    class Meta:
+        verbose_name = "пользователь"
+        verbose_name_plural = "пользователи"
+        ordering = ["-id"]
 
     def __str__(self) -> str:
         return self.email
@@ -93,43 +115,3 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().clean()
         self.email = (self.email or "").lower().strip()
         self.phone = normalize_phone(self.phone)
-
-    def save(self, *args, **kwargs):
-        self.email = (self.email or "").lower().strip()
-        self.phone = normalize_phone(self.phone)
-        creating = self._state.adding
-        old_avatar = None
-        if not creating:
-            existing = self.__class__.objects.filter(pk=self.pk).only("avatar").first()
-            if existing and existing.avatar and self.avatar and existing.avatar.name != self.avatar.name:
-                old_avatar = existing.avatar
-        if old_avatar:
-            old_avatar.delete(save=False)
-        super().save(*args, **kwargs)
-        if creating and not self.avatar:
-            self._generate_avatar()
-
-    def _generate_avatar(self):
-        letter = (self.name or "?").strip()[:1].upper() or "?"
-        bg_colors = [
-            "#3F51B5",
-            "#009688",
-            "#607D8B",
-            "#795548",
-            "#673AB7",
-            "#2196F3",
-        ]
-        bg = random.choice(bg_colors)
-        size = AVATAR_SIZE
-        img = Image.new("RGB", (size, size), bg)
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
-
-        bbox = draw.textbbox((0, 0), letter, font=font)
-        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        draw.text(((size - w) / 2, (size - h) / 2), letter, fill="#FFFFFF", font=font)
-
-        buf = BytesIO()
-        img.save(buf, format="PNG")
-        filename = f"user_{self.pk}_avatar.png"
-        self.avatar.save(filename, ContentFile(buf.getvalue()), save=True)

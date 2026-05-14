@@ -20,7 +20,7 @@
                 <img src="{% static 'images/default-avatar.png' %}" alt="Аватар по умолчанию" class="profile-avatar">
             {% endif %}
             <div class="profile-details">
-                <h2 class="profile-name">{{ user.name }} {{ user.surname }}</h2>
+                <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
                 <p class="profile-description">
                     {{ user.about|default:"Описание профиля пока не добавлено." }}
                 </p>

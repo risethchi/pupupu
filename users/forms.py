@@ -15,10 +15,10 @@ class RegisterForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["name", "surname", "email", "password"]
+        fields = ["first_name", "last_name", "email", "password"]
         labels = {
-            "name": "Имя",
-            "surname": "Фамилия",
+            "first_name": "Имя",
+            "last_name": "Фамилия",
             "email": "Email",
         }
 
@@ -53,10 +53,10 @@ class LoginForm(forms.Form):
 class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "surname", "avatar", "about", "phone", "github_url"]
+        fields = ["first_name", "last_name", "avatar", "about", "phone", "github_url"]
         labels = {
-            "name": "Имя",
-            "surname": "Фамилия",
+            "first_name": "Имя",
+            "last_name": "Фамилия",
             "avatar": "Аватар",
             "about": "О себе",
             "phone": "Телефон",
