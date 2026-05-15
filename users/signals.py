@@ -8,11 +8,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .constants import AVATAR_BG_COLORS
 from .models import User
-from .utils import AVATAR_SIZE
+from ..team_finder.utils import AVATAR_SIZE
 
 
 def generate_avatar(user: User) -> None:
-    """Генерирует аватар для пользователя на основе первой буквы имени."""
     letter = (user.first_name or "?").strip()[:1].upper() or "?"
     bg_color = random.choice(AVATAR_BG_COLORS)
 

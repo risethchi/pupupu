@@ -9,7 +9,7 @@ from .constants import (
     PHONE_MAX_LENGTH,
     ABOUT_MAX_LENGTH,
 )
-from .utils import avatar_upload_path, normalize_phone
+from ..team_finder.utils import avatar_upload_path, normalize_phone
 
 
 class UserManager(BaseUserManager):

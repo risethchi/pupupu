@@ -1,7 +1,7 @@
 from django import forms
 
 from .models import Project
-from users.utils import validate_github_url
+from team_finder.utils import validate_github_url
 
 class ProjectForm(forms.ModelForm):
     STATUS_RU_CHOICES = [
