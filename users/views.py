@@ -66,7 +66,6 @@ class UserListView(ListView):
     paginate_by = USER_LIST_PAGINATE_BY
 
     def get_queryset(self):
-        # Сортировка задана в Meta модели User
         queryset = User.objects.filter(is_active=True)
 
         filter_param = self.request.GET.get("filter")

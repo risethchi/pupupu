@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from .models import User, normalize_phone
-from .utils import validate_github_url
+from users.utils import validate_github_url
 
 
 class RegisterForm(forms.ModelForm):

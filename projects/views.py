@@ -46,7 +46,7 @@ class CreateProjectView(LoginRequiredMixin, CreateView):
         project = form.save(commit=False)
         project.owner = self.request.user
         project.save()
-        project.participants.add(self.request.user)  # Owner is participant
+        project.participants.add(self.request.user) 
         return redirect(reverse("projects:project_detail", kwargs={"pk": project.pk}))
 
     def get_context_data(self, **kwargs):
